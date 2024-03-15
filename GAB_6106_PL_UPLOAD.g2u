@@ -1,0 +1,76 @@
+﻿Program.Sub.Preflight.Start
+
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+V.Local.iRow.Declare
+V.Local.iTRow.Declare
+V.Local.sFileName.Declare
+V.Local.sGLPurchase.Declare
+V.Local.sGLSales.Declare
+V.Local.sGLWIP.Declare
+V.Local.sPL.Declare
+V.Local.sPLDesc1.Declare
+V.Local.sPLDesc2.Declare
+V.Local.sRow.Declare
+V.Local.sSQL.Declare
+V.Local.iCnt.Declare
+V.Local.sGLAcct.Declare
+
+'Get the excel upload file
+F.Intrinsic.UI.ShowOpenFileDialog("","*.xls|","",V.Local.sFileName)
+
+F.Intrinsic.Control.If(V.Local.sFileName,<>,"***CANCEL***")
+	F.Automation.MSExcel.CreateAppObject("MSExcel")
+	F.Automation.MSExcel.OpenWorkbook("MSExcel","UPL",V.Local.sFileName)
+	
+	F.Automation.MSExcel.OpenWorksheet("UPL","UPLSheet",1)
+	F.Automation.MSExcel.RowCount("UPLSheet",V.Local.iTRow)
+	
+	F.ODBC.Connection!conx.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+	
+	F.Intrinsic.Control.For(V.Local.iRow,2,V.Local.iTRow,1)
+		F.Automation.MSExcel.ReadRow("UPLSheet",V.Local.iRow,1,6,V.Local.sRow)
+		F.Intrinsic.String.Split(V.Local.sRow,"*!*",V.Local.sRow)
+		
+		F.Intrinsic.String.Left(V.Local.sRow(0),2,V.Local.sPL)
+		F.Intrinsic.String.Left(V.Local.sRow(1),10,V.Local.sPLDesc1)
+		F.Intrinsic.String.Left(V.Local.sRow(2),30,V.Local.sPLDesc2)
+		F.Intrinsic.String.Left(V.Local.sRow(3),15,V.Local.sGLSales)
+		F.Intrinsic.String.Left(V.Local.sRow(4),15,V.Local.sGLPurchase)
+		F.Intrinsic.String.Left(V.Local.sRow(5),15,V.Local.sGLWIP)
+		
+'		F.Intrinsic.String.Build("insert into product_line(key_data,product_line,filler,line,filler2,product_line_desc,product_line_name,f_decimal,sales_account,filler3,purchasing_account,acct_rest,pull_from_stock,apply_matl_ovhd,mfg_part_auto_wo,nesting_interface,no_var_po_rcpts,issue_lot_cost_std,no_var_wip_to_fg,filler4) values('ORDPRDLN','{0}','','','','{1}','{2}',0,'{3}','','{4}','','','','','','','','','');",V.Local.sPL,V.Local.sPLDesc1,V.Local.sPLDesc2,V.Local.sGLSales,V.Local.sGLPurchase,V.Local.sSQL)
+
+		F.Intrinsic.String.Build("insert into PL_MASTER(PROD_LINE,PL_NAME,DESCR,PUR_IS_INV_ACCT,PULL_STOCK_BOMWO,MFG_PART_NONINV,NO_VAR_PO_RCPT,NO_VAR_WIP,ISSUE_LOT_COST,ALLOW_0_RCPT,NO_COST_UPD_WIP,NESTING_INTERFACE,APPLY_MATL_OVHD,DIST_MATL_OVHD,FORCE_LOTBIN,ALLOW_INV_BELOW_0,FILLER) values('{0}','{1}','{2}',0,0,0,0,0,0,0,0,0,0,0,0,0,'')",V.Local.sPL,V.Local.sPLDesc2,V.Local.sPLDesc1,V.Local.sSQL)
+		F.ODBC.Connection!conx.Execute(V.Local.sSQL)
+		
+		F.Intrinsic.Control.For(V.Local.iCnt,1,4,1)
+			F.Intrinsic.Control.SelectCase(V.Local.iCnt)
+				F.Intrinsic.Control.Case(1)
+					V.Local.sGLAcct.Set(V.Local.sGLSales)
+				F.Intrinsic.Control.Case(2)
+					V.Local.sGLAcct.Set(V.Local.sGLPurchase)
+				F.Intrinsic.Control.Case(3)
+					V.Local.sGLAcct.Set(V.Local.sGLWIP)
+				F.Intrinsic.Control.Case(4)
+					V.Local.sGLAcct.Set("")
+			F.Intrinsic.Control.EndSelect
+			F.Intrinsic.String.Build("insert into PL_GL_ACCOUNTS(PROD_LINE,TYPE,GL_ACCT,FILLER) values('{0}',{1},'{2}','')",v.Local.sPL,V.Local.iCnt,V.Local.sGLAcct,V.Local.sSQL)
+			F.ODBC.Connection!conx.Execute(V.Local.sSQL)
+		F.Intrinsic.Control.Next(V.Local.iCnt)
+	F.Intrinsic.Control.Next(V.Local.iRow)
+	
+	F.ODBC.Connection!conx.Close
+	F.Automation.MSExcel.DestroyAllObjects("MSExcel","UPL","UPLSheet")
+	
+	F.Intrinsic.UI.Msgbox("Process completed. Please confirm that the Product Line are uploaded.")
+F.Intrinsic.Control.EndIf
+Program.Sub.Main.End
+
+Program.Sub.Comments.Start
+${$0$}$Product Line Upload from Excel File$}$MHERTANTO$}$26/1/2018 5:38:10 PM$}$False
+${$3$}$0$}$$}$0$}$-1$}$$}$12:00:00 AM$}$Upload product line from Excel file with the following columns in order:
+${$5$}$2.0.0.0$}$2
+${$6$}$tdjohan$}$20210929121238628$}$8rAQhOSvlohpQhMDm1j544LwmwXnRbkhE0PSrWyQg8cnKOeZ8a0NQZDa8Z2C/kqTpkYK3IMgoIg=
+Program.Sub.Comments.End
